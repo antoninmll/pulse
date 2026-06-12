@@ -60,7 +60,7 @@ export default function PlayerBar() {
   return (
     <div className="fixed bottom-4 left-1/2 z-50 w-[min(880px,94vw)] -translate-x-1/2">
       <div className="card relative flex items-center gap-4 overflow-hidden bg-[#0c0c0d]/95 px-4 py-3 shadow-[0_18px_60px_-18px_rgba(0,0,0,0.9)] backdrop-blur-xl">
-        {settings.visualizer && <Visualizer playing={!paused} />}
+        {settings.visualizer && <Visualizer playing={!paused} theme={settings.theme} />}
 
         {current.albumArt ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -124,7 +124,7 @@ export default function PlayerBar() {
           </button>
           <button
             onClick={togglePlay}
-            className="rounded-full bg-gold p-3 text-[#161200] transition hover:brightness-110"
+            className="rounded-full bg-gold p-3 text-[var(--on-gold)] transition hover:brightness-110"
             aria-label={paused ? "Lecture" : "Pause"}
           >
             {paused ? <IconPlay size={18} /> : <IconPause size={18} />}

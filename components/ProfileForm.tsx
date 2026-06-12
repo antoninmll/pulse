@@ -5,7 +5,15 @@ import { useRef, useState } from "react";
 import Avatar from "./Avatar";
 import { useSettings } from "./SettingsProvider";
 import { usePlayer } from "./PlayerProvider";
-import { IconVolume, IconWave } from "./icons";
+import { IconPalette, IconVolume, IconWave } from "./icons";
+import type { Theme } from "@/lib/db";
+
+const THEME_OPTIONS: { key: Theme; label: string; swatch: string }[] = [
+  { key: "gold", label: "Or", swatch: "#e3b341" },
+  { key: "red", label: "Rouge", swatch: "#ef5365" },
+  { key: "blue", label: "Bleu", swatch: "#4f9bf5" },
+  { key: "white", label: "Blanc", swatch: "#eceae3" },
+];
 
 type ProfileData = {
   username: string;
@@ -207,6 +215,38 @@ export default function ProfileForm({ initial }: { initial: ProfileData }) {
             <span className="w-8 text-right text-xs tabular-nums text-muted">
               {Math.round(volume * 100)}%
             </span>
+          </div>
+        </div>
+
+        <div className="mt-5 border-t border-white/5 pt-5">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold">
+              <IconPalette size={17} />
+            </span>
+            <div>
+              <p className="text-sm font-medium">Thème de l&apos;app</p>
+              <p className="text-xs text-muted">La couleur d&apos;accent de l&apos;interface.</p>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2.5">
+            {THEME_OPTIONS.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => updateSettings({ theme: t.key })}
+                aria-pressed={settings.theme === t.key}
+                className={`flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm transition ${
+                  settings.theme === t.key
+                    ? "border-gold/60 bg-gold/10 text-gold"
+                    : "border-white/10 text-muted hover:border-white/25 hover:text-foreground"
+                }`}
+              >
+                <span
+                  className="h-4 w-4 rounded-full ring-1 ring-white/15"
+                  style={{ background: t.swatch }}
+                />
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>

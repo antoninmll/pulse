@@ -4,11 +4,43 @@
   --background: #0a0a0b;
   --foreground: #f3f1ea;
   --muted: #837e72;
-  --gold: #e3b341;
-  --gold-soft: #c9a24a;
-  --gold-dim: rgba(227, 179, 65, 0.14);
   --line: rgba(255, 255, 255, 0.07);
   --panel: rgba(255, 255, 255, 0.022);
+
+  /* Accent — thème « or » par défaut */
+  --gold: #e3b341;
+  --gold-soft: #c9a24a;
+  --gold-strong: #f0c25a; /* haut du dégradé des boutons */
+  --gold-deep: #d29f33; /* bas du dégradé des boutons */
+  --on-gold: #161200; /* texte sur fond accent */
+  --gold-dim: color-mix(in srgb, var(--gold) 14%, transparent);
+}
+
+/* Thème rouge */
+[data-theme="red"] {
+  --gold: #ef5365;
+  --gold-soft: #cf5662;
+  --gold-strong: #ff6676;
+  --gold-deep: #d83a4b;
+  --on-gold: #ffffff;
+}
+
+/* Thème bleu */
+[data-theme="blue"] {
+  --gold: #4f9bf5;
+  --gold-soft: #5a93d8;
+  --gold-strong: #63a9ff;
+  --gold-deep: #357fe0;
+  --on-gold: #ffffff;
+}
+
+/* Thème blanc / argent */
+[data-theme="white"] {
+  --gold: #eceae3;
+  --gold-soft: #cbc9c2;
+  --gold-strong: #f6f4ee;
+  --gold-deep: #d6d4cd;
+  --on-gold: #16140f;
 }
 
 @theme inline {
@@ -40,8 +72,16 @@ body {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(620px 380px at 50% -8%, rgba(227, 179, 65, 0.1), transparent 70%),
-    radial-gradient(900px 500px at 50% -20%, rgba(227, 179, 65, 0.04), transparent 75%);
+    radial-gradient(
+      620px 380px at 50% -8%,
+      color-mix(in srgb, var(--gold) 10%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      900px 500px at 50% -20%,
+      color-mix(in srgb, var(--gold) 4%, transparent),
+      transparent 75%
+    );
 }
 
 /* Fine ligne dorée décorative */
@@ -89,15 +129,15 @@ body {
   border-radius: 9999px;
   padding: 0.7rem 1.5rem;
   font-weight: 600;
-  color: #161200;
-  background: linear-gradient(180deg, #f0c25a, #d29f33);
-  border: 1px solid rgba(227, 179, 65, 0.6);
+  color: var(--on-gold);
+  background: linear-gradient(180deg, var(--gold-strong), var(--gold-deep));
+  border: 1px solid color-mix(in srgb, var(--gold) 60%, transparent);
   transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 .btn-primary:hover {
   filter: brightness(1.06);
   transform: translateY(-1px);
-  box-shadow: 0 10px 30px -10px rgba(227, 179, 65, 0.5);
+  box-shadow: 0 10px 30px -10px color-mix(in srgb, var(--gold) 50%, transparent);
 }
 .btn-primary:disabled {
   opacity: 0.45;

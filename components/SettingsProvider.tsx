@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { UserSettings } from "@/lib/db";
 
 type SettingsContextValue = {
@@ -27,6 +35,11 @@ export function SettingsProvider({
   const [settings, setSettings] = useState<UserSettings>(initial);
   const pendingRef = useRef<Partial<UserSettings>>({});
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Applique le thème sur <html> (le rendu serveur le pose déjà : pas de flash)
+  useEffect(() => {
+    document.documentElement.dataset.theme = settings.theme;
+  }, [settings.theme]);
 
   const update = useCallback((partial: Partial<UserSettings>) => {
     setSettings((s) => ({ ...s, ...partial }));

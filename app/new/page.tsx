@@ -103,7 +103,7 @@ function NewPlaylistForm() {
             }}
             className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition ${
               tab === key
-                ? "bg-gold text-[#161200]"
+                ? "bg-gold text-[var(--on-gold)]"
                 : "text-muted hover:text-gold"
             }`}
           >
@@ -151,7 +151,8 @@ function NewPlaylistForm() {
               className="h-4 w-4 accent-gold"
             />
             <span className="text-sm">
-              Playlist publique <span className="text-muted">(visible dans Découvrir)</span>
+              Playlist publique{" "}
+              <span className="text-muted">(visible dans la recherche)</span>
             </span>
           </label>
 

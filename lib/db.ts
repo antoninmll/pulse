@@ -94,19 +94,27 @@ export type UserRow = {
   settings: string;
 };
 
+/** Thèmes d'accent disponibles. */
+export const THEMES = ["gold", "red", "blue", "white"] as const;
+export type Theme = (typeof THEMES)[number];
+
 /** Préférences utilisateur persistées (JSON dans users.settings). */
 export type UserSettings = {
   /** Visualiseur audio dans la barre de lecture */
   visualizer: boolean;
   /** Volume du lecteur (0 à 1), synchronisé entre appareils */
   volume: number;
+  /** Thème d'accent de l'interface */
+  theme: Theme;
 };
 
-export const DEFAULT_SETTINGS: UserSettings = { visualizer: true, volume: 0.7 };
+export const DEFAULT_SETTINGS: UserSettings = { visualizer: true, volume: 0.7, theme: "gold" };
 
 export function parseSettings(raw: string | null | undefined): UserSettings {
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw || "{}") };
+    const parsed = { ...DEFAULT_SETTINGS, ...JSON.parse(raw || "{}") };
+    if (!THEMES.includes(parsed.theme)) parsed.theme = "gold";
+    return parsed;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }

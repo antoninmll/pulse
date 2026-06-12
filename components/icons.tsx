@@ -277,6 +277,17 @@ export function IconVolume(p: IconProps) {
   );
 }
 
+export function IconPalette(p: IconProps) {
+  return (
+    <svg {...base(p)}>
+      <path d="M12 3a9 9 0 0 0 0 18c1.7 0 2-1.3 1.2-2.2-.8-1-.5-2.3.8-2.3H17a4 4 0 0 0 4-4c0-4.6-4-9.5-9-9.5Z" />
+      <circle cx="7.5" cy="11" r="1" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="8" r="1" fill="currentColor" stroke="none" />
+      <circle cx="16.5" cy="11" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function IconCamera(p: IconProps) {
   return (
     <svg {...base(p)}>

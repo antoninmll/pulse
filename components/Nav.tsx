@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Avatar from "./Avatar";
+import HeaderSearch from "./HeaderSearch";
 import { IconHome, IconSpotify, IconWave } from "./icons";
 
 type NavUser = {
@@ -15,17 +16,19 @@ export default function Nav({ user }: { user: NavUser | null }) {
   const pathname = usePathname();
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0a0a0b]/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-gold/40 bg-gold/10 text-gold">
             <IconWave size={18} />
           </span>
-          <span className="font-display text-lg font-semibold tracking-[0.2em] text-foreground">
+          <span className="hidden font-display text-lg font-semibold tracking-[0.2em] text-foreground sm:inline">
             PULSE
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1 sm:gap-2">
+        {user && <HeaderSearch />}
+
+        <nav className="flex shrink-0 items-center gap-1 sm:gap-2">
           {user ? (
             <>
               <Link
@@ -35,15 +38,7 @@ export default function Nav({ user }: { user: NavUser | null }) {
                 }`}
               >
                 <IconHome size={15} />
-                Accueil
-              </Link>
-              <Link
-                href="/discover"
-                className={`rounded-full px-3 py-2 text-sm transition hover:text-gold ${
-                  pathname === "/discover" ? "text-gold" : "text-muted"
-                }`}
-              >
-                Découvrir
+                <span className="hidden sm:inline">Accueil</span>
               </Link>
               <Link
                 href="/new"
@@ -51,7 +46,7 @@ export default function Nav({ user }: { user: NavUser | null }) {
               >
                 Créer
               </Link>
-              <Link href="/profile" className="ml-1 sm:ml-2" aria-label="Mon profil">
+              <Link href="/profile" className="ml-1" aria-label="Mon profil">
                 <Avatar
                   src={user.avatarUrl}
                   name={user.username ?? user.displayName ?? "?"}

@@ -26,7 +26,11 @@ export default async function RootLayout({
   const settings = parseSettings(user?.settings);
 
   return (
-    <html lang="fr" className={`${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}>
+    <html
+      lang="fr"
+      data-theme={settings.theme}
+      className={`${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}
+    >
       <body className="flex min-h-full flex-col">
         <div className="ambient" />
         <SettingsProvider initial={settings}>

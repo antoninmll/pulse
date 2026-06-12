@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, parseSettings, publicUser } from "@/lib/db";
+import { db, parseSettings, publicUser, THEMES } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
@@ -57,6 +57,9 @@ export async function PATCH(req: NextRequest) {
     if (typeof body.settings.visualizer === "boolean") next.visualizer = body.settings.visualizer;
     if (typeof body.settings.volume === "number") {
       next.volume = Math.min(1, Math.max(0, body.settings.volume));
+    }
+    if (typeof body.settings.theme === "string" && THEMES.includes(body.settings.theme)) {
+      next.theme = body.settings.theme;
     }
     updates.push("settings = ?");
     values.push(JSON.stringify(next));

@@ -56,8 +56,8 @@ function DayChart({ days }: { days: { day: string; plays: number }[] }) {
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Écoutes par jour">
         <defs>
           <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#e3b341" stopOpacity="0.32" />
-            <stop offset="100%" stopColor="#e3b341" stopOpacity="0" />
+            <stop offset="0%" style={{ stopColor: "var(--gold)" }} stopOpacity="0.32" />
+            <stop offset="100%" style={{ stopColor: "var(--gold)" }} stopOpacity="0" />
           </linearGradient>
         </defs>
         {/* Échelle verticale : graduations + lignes repères */}
@@ -86,7 +86,7 @@ function DayChart({ days }: { days: { day: string; plays: number }[] }) {
         <polyline
           points={points}
           fill="none"
-          stroke="#e3b341"
+          style={{ stroke: "var(--gold)" }}
           strokeWidth="2.5"
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -97,7 +97,7 @@ function DayChart({ days }: { days: { day: string; plays: number }[] }) {
             cx={PAD_LEFT + i * step}
             cy={y(s.plays)}
             r={s.plays > 0 ? 3.5 : 0}
-            fill="#e3b341"
+            style={{ fill: "var(--gold)" }}
           >
             <title>{`${s.label} : ${s.plays} écoute${s.plays > 1 ? "s" : ""}`}</title>
           </circle>
