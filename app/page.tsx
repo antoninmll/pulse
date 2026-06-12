@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import MyPlaylistsGrid from "@/components/MyPlaylistsGrid";
-import { type PlaylistCardData } from "@/components/PlaylistCard";
-import { IconChart, IconImport, IconShare, IconSpotify } from "@/components/icons";
+import PlaylistCard, { type PlaylistCardData } from "@/components/PlaylistCard";
+import { IconChart, IconFlame, IconImport, IconShare, IconSpotify } from "@/components/icons";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import { isConfigured } from "@/lib/spotify";
@@ -110,51 +110,99 @@ export default async function Home({
     )
     .all(user.id) as PlaylistCardData[];
 
+  const popularPlaylists = db
+    .prepare(
+      `SELECT p.share_id AS shareId, p.name, p.description, p.cover_url AS coverUrl, p.is_public AS isPublic,
+              u.username AS ownerName,
+              (SELECT COUNT(*) FROM playlist_tracks pt WHERE pt.playlist_id = p.id) AS trackCount,
+              (SELECT COUNT(*) FROM plays pl WHERE pl.playlist_id = p.id) AS playCount,
+              (SELECT json_group_array(album_art) FROM (
+                 SELECT t.album_art FROM playlist_tracks pt
+                 JOIN tracks t ON t.id = pt.track_id
+                 WHERE pt.playlist_id = p.id AND t.album_art IS NOT NULL
+                 ORDER BY pt.position LIMIT 12
+               )) AS artsJson
+       FROM playlists p
+       JOIN users u ON u.id = p.owner_id
+       WHERE p.is_public = 1 AND u.username != 'neo_tester'
+       ORDER BY playCount DESC, p.created_at DESC
+       LIMIT 4`
+    )
+    .all() as PlaylistCardData[];
+
   return (
-    <div>
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted">
-            Salut <span className="gold-text">@{user.username}</span>
-          </p>
-          <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Mes playlists
-          </h1>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/new?tab=import" className="btn-ghost text-sm">
-            <IconImport size={16} />
-            Importer
-          </Link>
-          <Link href="/new" className="btn-primary text-sm">
-            Nouvelle playlist
-          </Link>
-        </div>
+    <div className="space-y-12 animate-fade-in">
+      <div className="border-b border-white/5 pb-5">
+        <p className="text-sm text-muted">
+          Salut <span className="gold-text">@{user.username}</span>
+        </p>
+        <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
+          Accueil
+        </h1>
       </div>
 
-      {myPlaylists.length === 0 ? (
-        <div className="card mt-10 flex flex-col items-center px-6 py-16 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-gold/30 bg-gold/10 text-gold">
-            <IconShare size={22} />
-          </span>
-          <h2 className="font-display mt-5 text-xl font-semibold">
-            Ta première playlist t&apos;attend
+      {/* Section Mes Playlists */}
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h2 className="font-display text-xl font-semibold tracking-tight">
+            Mes playlists
           </h2>
-          <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
-            Crée une playlist depuis zéro avec la recherche Spotify, ou importe une de tes
-            playlists existantes en collant son lien.
-          </p>
-          <div className="mt-6 flex gap-3">
-            <Link href="/new" className="btn-primary text-sm">
-              Créer
-            </Link>
+          <div className="flex gap-2">
             <Link href="/new?tab=import" className="btn-ghost text-sm">
+              <IconImport size={16} />
               Importer
+            </Link>
+            <Link href="/new" className="btn-primary text-sm">
+              Nouvelle playlist
             </Link>
           </div>
         </div>
-      ) : (
-        <MyPlaylistsGrid playlists={myPlaylists} />
+
+        {myPlaylists.length === 0 ? (
+          <div className="card mt-2 flex flex-col items-center px-6 py-16 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-gold/30 bg-gold/10 text-gold">
+              <IconShare size={22} />
+            </span>
+            <h3 className="font-display mt-5 text-lg font-semibold">
+              Ta première playlist t&apos;attend
+            </h3>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
+              Crée une playlist depuis zéro avec la recherche Spotify, ou importe une de tes
+              playlists existantes en collant son lien.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <Link href="/new" className="btn-primary text-sm">
+                Créer
+              </Link>
+              <Link href="/new?tab=import" className="btn-ghost text-sm">
+                Importer
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <MyPlaylistsGrid playlists={myPlaylists} />
+        )}
+      </section>
+
+      <div className="h-px w-full hairline opacity-25" />
+
+      {/* Section Suggestions populaires */}
+      {popularPlaylists.length > 0 && (
+        <section className="space-y-6">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold">
+              <IconFlame size={16} />
+            </span>
+            <h2 className="font-display text-xl font-semibold tracking-tight">
+              Suggestions populaires
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {popularPlaylists.map((p) => (
+              <PlaylistCard key={p.shareId} playlist={p} />
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

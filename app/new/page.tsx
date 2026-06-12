@@ -113,7 +113,7 @@ function NewPlaylistForm() {
       </div>
 
       {tab === "create" ? (
-        <form onSubmit={createPlaylist} className="card mt-4 space-y-5 p-6">
+        <form onSubmit={createPlaylist} className="card mt-4 space-y-5 p-6 animate-fade-in">
           <div>
             <label htmlFor="name" className="mb-1.5 block text-sm font-medium">
               Nom de la playlist
@@ -166,7 +166,7 @@ function NewPlaylistForm() {
           </p>
         </form>
       ) : (
-        <div className="card mt-4 space-y-5 p-6">
+        <div className="card mt-4 space-y-5 p-6 animate-fade-in">
           <div>
             <p className="text-sm font-medium">Tes playlists Spotify</p>
             <p className="mt-1 text-xs text-muted">

@@ -62,7 +62,7 @@ export default function PlayerBar() {
       <div className="card relative flex items-center gap-4 overflow-hidden bg-[#0c0c0d]/95 px-4 py-3 shadow-[0_18px_60px_-18px_rgba(0,0,0,0.9)] backdrop-blur-xl">
         {settings.visualizer && (
           <div className={`pointer-events-none absolute inset-0 h-full w-full overflow-hidden z-0 transition-opacity duration-500 ${
-            paused ? "opacity-0" : "opacity-20"
+            paused ? "opacity-0" : "opacity-30"
           }`}>
             <Visualizer playing={!paused} theme={settings.theme} />
           </div>

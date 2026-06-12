@@ -30,12 +30,7 @@ function hashString(s: string): number {
 
 export function pickCoverArts(arts: string[], seedKey: string): string[] {
   const unique = [...new Set(arts.filter(Boolean))];
-  if (unique.length <= 2) return unique;
-  const rand = mulberry32(hashString(seedKey));
-  const i = Math.floor(rand() * unique.length);
-  let j = Math.floor(rand() * (unique.length - 1));
-  if (j >= i) j++;
-  return [unique[i], unique[j]];
+  return unique.slice(0, 2);
 }
 
 export default function PlaylistCover({

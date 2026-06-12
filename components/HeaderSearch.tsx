@@ -7,7 +7,7 @@ import Avatar from "./Avatar";
 import { parseArts } from "./PlaylistCard";
 import PlaylistCover from "./PlaylistCover";
 import { usePlayer } from "./PlayerProvider";
-import { IconPause, IconPlay, IconSearch } from "./icons";
+import { IconPause, IconPlay, IconPlus, IconSearch } from "./icons";
 
 type SearchType = "tracks" | "playlists" | "users";
 
@@ -57,6 +57,15 @@ export default function HeaderSearch() {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+
+  const [playlists, setPlaylists] = useState<{ id: number; name: string }[] | null>(null);
+  const [addingTrackId, setAddingTrackId] = useState<string | null>(null);
+  const [addingStatus, setAddingStatus] = useState<Record<string, "idle" | "loading" | "done" | "error">>({});
+
+  // Reset le menu d'ajout si la recherche change ou se ferme
+  useEffect(() => {
+    setAddingTrackId(null);
+  }, [open, query, type]);
 
   // Recherche débouncée
   useEffect(() => {
@@ -111,6 +120,48 @@ export default function HeaderSearch() {
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  async function loadPlaylists() {
+    try {
+      const res = await fetch("/api/playlists");
+      const data = await res.json();
+      if (res.ok) {
+        setPlaylists(data.playlists ?? []);
+      }
+    } catch {}
+  }
+
+  async function addTrackToPlaylist(playlistId: number, trackSpotifyId: string) {
+    setAddingStatus((s) => ({ ...s, [trackSpotifyId]: "loading" }));
+    try {
+      const res = await fetch(`/api/playlists/${playlistId}/tracks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spotifyTrackId: trackSpotifyId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAddingStatus((s) => ({ ...s, [trackSpotifyId]: "done" }));
+        setAddingTrackId(null);
+        alert("Morceau ajouté avec succès !");
+      } else {
+        setAddingStatus((s) => ({ ...s, [trackSpotifyId]: "error" }));
+        alert(data.error ?? "Erreur lors de l'ajout");
+      }
+    } catch {
+      setAddingStatus((s) => ({ ...s, [trackSpotifyId]: "error" }));
+      alert("Erreur lors de l'ajout");
+    }
+  }
+
+  const handleAddClick = (trackSpotifyId: string) => {
+    if (addingTrackId === trackSpotifyId) {
+      setAddingTrackId(null);
+    } else {
+      setAddingTrackId(trackSpotifyId);
+      if (playlists === null) loadPlaylists();
+    }
+  };
 
   function playTrack(t: TrackResult) {
     player.playContext(null, [`spotify:track:${t.spotifyId}`], 0);
@@ -174,7 +225,7 @@ export default function HeaderSearch() {
 
             {/* Musiques */}
             {!searching && type === "tracks" && (
-              <ul>
+              <ul className="animate-fade-in">
                 {(results as TrackResult[]).map((t, i) => (
                   <li
                     key={`${t.spotifyId}-${i}`}
@@ -210,6 +261,62 @@ export default function HeaderSearch() {
                       </p>
                       <p className="truncate text-xs text-muted">{t.artists}</p>
                     </button>
+                    <div className="relative shrink-0 flex items-center justify-end">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddClick(t.spotifyId);
+                        }}
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-white/5 hover:text-gold transition-colors"
+                        title="Ajouter à une playlist"
+                      >
+                        <IconPlus size={14} />
+                      </button>
+
+                      {addingTrackId === t.spotifyId && (
+                        <div className="absolute right-0 top-9 z-50 w-48 rounded-lg border border-white/10 bg-[#0c0c0d]/98 shadow-xl p-1.5 space-y-1 animate-fade-in max-h-52 overflow-y-auto">
+                          {playlists === null ? (
+                            <p className="py-2 text-center text-[10px] text-muted">Chargement...</p>
+                          ) : playlists.length === 0 ? (
+                            <div className="py-3 text-center px-2">
+                              <p className="text-[10px] text-muted mb-1.5">Aucune playlist</p>
+                              <Link
+                                href="/new"
+                                onClick={() => {
+                                  setOpen(false);
+                                  setAddingTrackId(null);
+                                }}
+                                className="text-[10px] font-semibold text-gold hover:underline"
+                              >
+                                Créer une playlist
+                              </Link>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="px-2 py-1 text-[9px] font-medium text-muted uppercase tracking-wider border-b border-white/5 mb-1">
+                                Ajouter à :
+                              </p>
+                              {playlists.map((p) => (
+                                <button
+                                  key={p.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    addTrackToPlaylist(p.id, t.spotifyId);
+                                  }}
+                                  disabled={addingStatus[t.spotifyId] === "loading"}
+                                  className="w-full text-left rounded px-2 py-1.5 text-xs text-muted hover:bg-white/5 hover:text-foreground transition flex items-center justify-between disabled:opacity-50"
+                                >
+                                  <span className="truncate">{p.name}</span>
+                                  {addingStatus[t.spotifyId] === "loading" && (
+                                    <span className="text-[10px] text-gold animate-pulse">...</span>
+                                  )}
+                                </button>
+                              ))}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -217,7 +324,7 @@ export default function HeaderSearch() {
 
             {/* Playlists */}
             {!searching && type === "playlists" && (
-              <ul>
+              <ul className="animate-fade-in">
                 {(results as PlaylistResult[]).map((p) => (
                   <li key={p.shareId} className="border-b border-white/5 last:border-0">
                     <Link
@@ -248,7 +355,7 @@ export default function HeaderSearch() {
 
             {/* Utilisateurs */}
             {!searching && type === "users" && (
-              <ul>
+              <ul className="animate-fade-in">
                 {(results as UserResult[]).map((u) => (
                   <li key={u.username} className="border-b border-white/5 last:border-0">
                     <Link

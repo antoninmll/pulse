@@ -70,7 +70,7 @@ export default function ProfileForm({ initial }: { initial: ProfileData }) {
   }
 
   return (
-    <div className="mx-auto max-w-xl pt-4">
+    <div className="mx-auto max-w-xl pt-4 animate-fade-in">
       <p className="eyebrow">Mon compte</p>
       <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight">
         Profil <span className="gold-text">@{initial.username}</span>

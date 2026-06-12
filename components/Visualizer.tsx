@@ -13,22 +13,11 @@ import { useEffect, useRef } from "react";
 export default function Visualizer({ playing, theme }: { playing: boolean; theme: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const playingRef = useRef(playing);
-  const colorRef = useRef("227, 179, 65");
+  const colorRef = useRef("140, 140, 140");
 
   useEffect(() => {
     playingRef.current = playing;
   }, [playing]);
-
-  // Convertit la couleur d'accent du thème (--gold) en format RGB "r, g, b"
-  useEffect(() => {
-    const hex = getComputedStyle(document.documentElement)
-      .getPropertyValue("--gold")
-      .trim();
-    const m = hex.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
-    if (m) {
-      colorRef.current = `${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}`;
-    }
-  }, [theme]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
