@@ -16,7 +16,6 @@ import {
   IconPlay,
   IconShare,
   IconShuffle,
-  IconSpotify,
 } from "./icons";
 
 export type PlaylistData = {
@@ -68,7 +67,6 @@ export default function PlaylistView({
   const [coverError, setCoverError] = useState<string | null>(null);
 
   const [cloning, setCloning] = useState(false);
-  const [exporting, setExporting] = useState(false);
 
   async function duplicatePlaylist() {
     if (!isLoggedIn) {
@@ -94,32 +92,6 @@ export default function PlaylistView({
     }
   }
 
-  async function exportToSpotify() {
-    setExporting(true);
-    try {
-      const res = await fetch(`/api/playlists/${playlist.id}/export`, {
-        method: "POST",
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.spotifyUrl) {
-        alert("Playlist exportée avec succès sur Spotify ! Nous allons l'ouvrir.");
-        window.open(data.spotifyUrl, "_blank");
-      } else if (data.needReauth) {
-        const reconnect = confirm(
-          "Permissions insuffisantes.\nTu dois te reconnecter à Spotify pour autoriser la création de playlists.\n\nVeux-tu te reconnecter maintenant ?"
-        );
-        if (reconnect) {
-          window.location.href = "/api/auth/login";
-        }
-      } else {
-        alert(data.error ?? "Impossible d'exporter la playlist");
-      }
-    } catch {
-      alert("Une erreur est survenue lors de l'export");
-    } finally {
-      setExporting(false);
-    }
-  }
 
   const uris = tracks.map((t) => `spotify:track:${t.spotifyId}`);
   const totalMs = tracks.reduce((acc, t) => acc + t.durationMs, 0);
@@ -313,15 +285,7 @@ export default function PlaylistView({
             )}
             {isOwner && (
               <>
-                <button
-                  onClick={exportToSpotify}
-                  disabled={exporting || tracks.length === 0}
-                  className="btn-ghost border-emerald-500/30 text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/5 text-sm flex items-center gap-1.5"
-                  title="Exporter la playlist vers ton compte Spotify"
-                >
-                  <IconSpotify size={16} />
-                  {exporting ? "Push..." : "Push Spotify"}
-                </button>
+
                 <Link href={`/p/${playlist.shareId}/stats`} className="btn-ghost text-sm">
                   <IconChart size={16} />
                   Stats

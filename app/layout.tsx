@@ -16,6 +16,17 @@ export const metadata: Metadata = {
   title: "Pulse — Partage tes playlists",
   description:
     "Crée, partage et écoute des playlists connectées à Spotify, avec des stats d'écoute en temps réel.",
+  manifest: "/manifest.json",
+  themeColor: "#a855f7",
+  icons: {
+    icon: "/icon-512.png",
+    apple: "/icon-512.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Pulse",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default async function RootLayout({

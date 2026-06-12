@@ -192,6 +192,75 @@ export function PlayerProvider({
     return () => clearInterval(interval);
   }, [paused, current]);
 
+  // MediaSession API — affiche le titre, artiste et pochette dans le lecteur OS (iOS/Android)
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+
+    if (!current) {
+      navigator.mediaSession.metadata = null;
+      return;
+    }
+
+    const artwork: MediaImage[] = current.albumArt
+      ? [
+          { src: current.albumArt, sizes: "300x300", type: "image/jpeg" },
+          { src: current.albumArt, sizes: "512x512", type: "image/jpeg" },
+        ]
+      : [];
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: current.name,
+      artist: current.artists,
+      album: "Pulse",
+      artwork,
+    });
+
+    navigator.mediaSession.playbackState = paused ? "paused" : "playing";
+  }, [current, paused]);
+
+  // MediaSession action handlers
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+
+    const player = playerRef.current;
+    if (!player) return;
+
+    const actions: [MediaSessionAction, MediaSessionActionHandler][] = [
+      ["play", () => player.togglePlay()],
+      ["pause", () => player.togglePlay()],
+      ["previoustrack", () => player.previousTrack()],
+      ["nexttrack", () => player.nextTrack()],
+      [
+        "seekto",
+        (details) => {
+          if (details.seekTime != null) {
+            const ms = details.seekTime * 1000;
+            setPositionMs(ms);
+            player.seek(ms);
+          }
+        },
+      ],
+    ];
+
+    for (const [action, handler] of actions) {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch {
+        // Some actions may not be supported
+      }
+    }
+
+    return () => {
+      for (const [action] of actions) {
+        try {
+          navigator.mediaSession.setActionHandler(action, null);
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [ready]);
+
   /** Appel direct à l'API Web Spotify sur le device du lecteur. */
   const playerApi = useCallback(async (path: string, method = "PUT"): Promise<Response | null> => {
     try {
