@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { usePlayer } from "./PlayerProvider";
 import { useSettings } from "./SettingsProvider";
 import Visualizer from "./Visualizer";
@@ -7,6 +8,7 @@ import {
   IconNext,
   IconPause,
   IconPlay,
+  IconPlus,
   IconPrev,
   IconRepeat,
   IconRepeatOne,
@@ -38,6 +40,68 @@ export default function PlayerBar() {
   } = usePlayer();
   const { settings } = useSettings();
 
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [playlists, setPlaylists] = useState<{ id: number; name: string }[] | null>(null);
+  const [addingStatus, setAddingStatus] = useState<Record<string, "idle" | "loading" | "done" | "error">>({});
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const currentTrackSpotifyId = current?.uri ? current.uri.split(":").pop() : null;
+
+  useEffect(() => {
+    setShowDropdown(false);
+    setAddingStatus({});
+  }, [currentTrackSpotifyId]);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  async function loadPlaylists() {
+    try {
+      const res = await fetch("/api/playlists");
+      const data = await res.json();
+      if (res.ok) {
+        setPlaylists(data.playlists ?? []);
+      }
+    } catch {}
+  }
+
+  async function addTrackToPlaylist(playlistId: number) {
+    if (!currentTrackSpotifyId) return;
+    setAddingStatus((s) => ({ ...s, [playlistId]: "loading" }));
+    try {
+      const res = await fetch(`/api/playlists/${playlistId}/tracks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spotifyTrackId: currentTrackSpotifyId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAddingStatus((s) => ({ ...s, [playlistId]: "done" }));
+        setShowDropdown(false);
+        alert("Morceau ajouté avec succès !");
+      } else {
+        setAddingStatus((s) => ({ ...s, [playlistId]: "error" }));
+        alert(data.error ?? "Erreur lors de l'ajout");
+      }
+    } catch {
+      setAddingStatus((s) => ({ ...s, [playlistId]: "error" }));
+      alert("Erreur lors de l'ajout");
+    }
+  }
+
   if (error) {
     return (
       <div className="fixed bottom-4 left-1/2 z-50 w-[min(680px,92vw)] -translate-x-1/2">
@@ -59,6 +123,53 @@ export default function PlayerBar() {
 
   return (
     <div className="fixed bottom-4 left-1/2 z-50 w-[min(880px,94vw)] -translate-x-1/2">
+      {/* Dropdown de playlists */}
+      {showDropdown && currentTrackSpotifyId && (
+        <div
+          ref={dropdownRef}
+          className="absolute bottom-full mb-2 left-16 z-50 w-48 rounded-lg border border-white/10 bg-[#0c0c0d]/98 shadow-[0_10px_30px_rgba(0,0,0,0.8)] p-1.5 space-y-1 animate-fade-in max-h-52 overflow-y-auto"
+        >
+          {playlists === null ? (
+            <p className="py-2 text-center text-[10px] text-muted font-medium">Chargement...</p>
+          ) : playlists.length === 0 ? (
+            <div className="py-3 text-center px-2">
+              <p className="text-[10px] text-muted mb-1.5 font-medium">Aucune playlist</p>
+              <a
+                href="/new"
+                onClick={() => {
+                  setShowDropdown(false);
+                }}
+                className="text-[10px] font-semibold text-gold hover:underline"
+              >
+                Créer une playlist
+              </a>
+            </div>
+          ) : (
+            <>
+              <p className="px-2 py-1 text-[9px] font-semibold text-muted uppercase tracking-wider border-b border-white/5 mb-1">
+                Ajouter à :
+              </p>
+              {playlists.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addTrackToPlaylist(p.id);
+                  }}
+                  disabled={addingStatus[p.id] === "loading"}
+                  className="w-full text-left rounded px-2 py-1.5 text-xs text-muted hover:bg-white/5 hover:text-foreground transition flex items-center justify-between disabled:opacity-50"
+                >
+                  <span className="truncate">{p.name}</span>
+                  {addingStatus[p.id] === "loading" && (
+                    <span className="text-[10px] text-gold animate-pulse">...</span>
+                  )}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
       <div className="card relative flex items-center gap-4 overflow-hidden bg-[#0c0c0d]/95 px-4 py-3 shadow-[0_18px_60px_-18px_rgba(0,0,0,0.9)] backdrop-blur-xl">
         {settings.visualizer && (
           <div className={`pointer-events-none absolute inset-0 h-full w-full overflow-hidden z-0 transition-opacity duration-500 ${
@@ -80,17 +191,36 @@ export default function PlayerBar() {
         )}
 
         <div className="relative min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            {!paused && (
-              <span className="eq shrink-0">
-                <span />
-                <span />
-                <span />
-              </span>
-            )}
-            <p className="truncate text-sm font-semibold">{current.name}</p>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                {!paused && (
+                  <span className="eq shrink-0">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                )}
+                <p className="truncate text-sm font-semibold">{current.name}</p>
+              </div>
+              <p className="truncate text-xs text-muted">{current.artists}</p>
+            </div>
+            
+            <button
+              ref={buttonRef}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDropdown((prev) => !prev);
+                if (!showDropdown && playlists === null) {
+                  loadPlaylists();
+                }
+              }}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted hover:bg-white/5 hover:text-gold transition-colors mt-0.5"
+              title="Ajouter à une playlist"
+            >
+              <IconPlus size={15} />
+            </button>
           </div>
-          <p className="truncate text-xs text-muted">{current.artists}</p>
           <div className="mt-1 flex items-center gap-2">
             <span className="w-9 text-right text-[10px] tabular-nums text-muted">
               {fmt(positionMs)}
