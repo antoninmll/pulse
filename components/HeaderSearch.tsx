@@ -192,7 +192,7 @@ export default function HeaderSearch() {
       />
 
       {showPanel && (
-        <div className="absolute left-0 right-0 top-12 z-50 overflow-hidden rounded-xl border border-white/10 bg-[#0c0c0d]/98 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+        <div className="fixed left-1/2 -translate-x-1/2 w-[92vw] max-w-md sm:absolute sm:left-0 sm:right-0 sm:translate-x-0 sm:w-full sm:max-w-none top-14 sm:top-12 z-50 overflow-hidden rounded-xl border border-white/10 bg-[#0c0c0d]/98 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.9)] backdrop-blur-xl">
           {/* Onglets de type */}
           <div className="flex gap-1 border-b border-white/5 p-2">
             {TYPE_TABS.map(([key, label]) => (
