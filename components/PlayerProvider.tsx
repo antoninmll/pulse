@@ -208,14 +208,22 @@ export function PlayerProvider({
         ]
       : [];
 
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: current.name,
-      artist: current.artists,
-      album: "Pulse",
-      artwork,
-    });
+    const apply = () => {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: current.name,
+        artist: current.artists,
+        album: "Pulse",
+        artwork,
+      });
+      navigator.mediaSession.playbackState = paused ? "paused" : "playing";
+    };
 
-    navigator.mediaSession.playbackState = paused ? "paused" : "playing";
+    // Le SDK Spotify réécrit SA propre métadonnée (« Spotify embedded player »)
+    // de façon asynchrone après le changement d'état. On repasse derrière lui à
+    // plusieurs reprises pour que ce soit bien notre titre/pochette qui gagne.
+    apply();
+    const timers = [setTimeout(apply, 300), setTimeout(apply, 1000)];
+    return () => timers.forEach(clearTimeout);
   }, [current, paused]);
 
   // iOS : alimente le « Now Playing » (Dynamic Island / écran verrouillé).
