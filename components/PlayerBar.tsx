@@ -14,6 +14,7 @@ import {
   IconRepeatOne,
   IconShuffle,
   IconVolume,
+  IconMusic,
 } from "./icons";
 
 function fmt(ms: number): string {
@@ -127,7 +128,7 @@ export default function PlayerBar() {
       {showDropdown && currentTrackSpotifyId && (
         <div
           ref={dropdownRef}
-          className="absolute bottom-full mb-2 left-16 z-50 w-48 rounded-lg border border-white/10 bg-[#0c0c0d]/98 shadow-[0_10px_30px_rgba(0,0,0,0.8)] p-1.5 space-y-1 animate-fade-in max-h-52 overflow-y-auto"
+          className="absolute bottom-full mb-2 left-4 z-50 w-48 rounded-lg border border-white/10 bg-[#0c0c0d]/98 shadow-[0_10px_30px_rgba(0,0,0,0.8)] p-1.5 space-y-1 animate-fade-in max-h-52 overflow-y-auto"
         >
           {playlists === null ? (
             <p className="py-2 text-center text-[10px] text-muted font-medium">Chargement...</p>
@@ -172,55 +173,56 @@ export default function PlayerBar() {
 
       <div className="card relative flex items-center gap-4 overflow-hidden bg-[#0c0c0d]/95 px-4 py-3 shadow-[0_18px_60px_-18px_rgba(0,0,0,0.9)] backdrop-blur-xl">
         {settings.visualizer && (
-          <div className={`pointer-events-none absolute inset-0 h-full w-full overflow-hidden z-0 transition-opacity duration-500 ${
-            paused ? "opacity-0" : "opacity-30"
-          }`}>
-            <Visualizer playing={!paused} theme={settings.theme} />
-          </div>
-        )}
-
-        {current.albumArt ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={current.albumArt}
-            alt=""
-            className="relative h-12 w-12 rounded-md object-cover"
-          />
-        ) : (
-          <div className="relative h-12 w-12 rounded-md bg-white/10" />
-        )}
-
-        <div className="relative min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                {!paused && (
-                  <span className="eq shrink-0">
-                    <span />
-                    <span />
-                    <span />
-                  </span>
-                )}
-                <p className="truncate text-sm font-semibold">{current.name}</p>
-              </div>
-              <p className="truncate text-xs text-muted">{current.artists}</p>
+          <>
+            <div className={`pointer-events-none absolute inset-0 h-full w-full overflow-hidden z-0 transition-opacity duration-500 ${
+              paused ? "opacity-0" : "opacity-15"
+            }`}>
+              <Visualizer playing={!paused} theme={settings.theme} />
             </div>
-            
-            <button
-              ref={buttonRef}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowDropdown((prev) => !prev);
-                if (!showDropdown && playlists === null) {
-                  loadPlaylists();
-                }
-              }}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted hover:bg-white/5 hover:text-gold transition-colors mt-0.5"
-              title="Ajouter à une playlist"
-            >
-              <IconPlus size={15} />
-            </button>
+            <div className="pointer-events-none absolute inset-0 bg-black/40 z-0" />
+          </>
+        )}
+
+        <div className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden group z-10">
+          {current.albumArt ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={current.albumArt}
+              alt=""
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className="h-full w-full bg-white/10 flex items-center justify-center">
+              <IconMusic size={16} className="text-muted" />
+            </div>
+          )}
+          {/* Hover Overlay with Plus Button */}
+          <button
+            ref={buttonRef}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDropdown((prev) => !prev);
+              if (!showDropdown && playlists === null) {
+                loadPlaylists();
+              }
+            }}
+            className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gold"
+            title="Ajouter à une playlist"
+          >
+            <IconPlus size={16} strokeWidth={2.2} />
+          </button>
+        </div>
+
+        <div className="relative z-10 min-w-0 flex-1">
+          <div className="flex items-center">
+            <span className={`player-eq shrink-0 ${paused ? "is-paused" : ""}`}>
+              <span />
+              <span />
+              <span />
+            </span>
+            <p className="truncate text-sm font-semibold">{current.name}</p>
           </div>
+          <p className="truncate text-xs text-muted">{current.artists}</p>
           <div className="mt-1 flex items-center gap-2">
             <span className="w-9 text-right text-[10px] tabular-nums text-muted">
               {fmt(positionMs)}
@@ -240,7 +242,7 @@ export default function PlayerBar() {
           </div>
         </div>
 
-        <div className="relative flex items-center gap-1">
+        <div className="relative z-10 flex items-center gap-1">
           <button
             onClick={toggleShuffle}
             className={`hidden rounded-full p-2 transition sm:block ${
@@ -284,7 +286,7 @@ export default function PlayerBar() {
           </button>
         </div>
 
-        <div className="relative hidden items-center gap-1.5 md:flex">
+        <div className="relative z-10 hidden items-center gap-1.5 md:flex">
           <span className="text-muted">
             <IconVolume size={15} />
           </span>
