@@ -11,6 +11,8 @@ export const SCOPES = [
   "user-modify-playback-state",
   "playlist-read-private",
   "playlist-read-collaborative",
+  "playlist-modify-public",
+  "playlist-modify-private",
 ].join(" ");
 
 export function appUrl(): string {
@@ -104,6 +106,24 @@ export async function spotifyFetch<T>(user: UserRow, pathname: string): Promise<
   const token = await getValidAccessToken(user);
   const res = await fetch(`${SPOTIFY_API}${pathname}`, {
     headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new SpotifyApiError(res.status, await res.text());
+  }
+  return res.json();
+}
+
+/** Envoi d'une requête POST à l'API Spotify avec le compte de l'utilisateur. */
+export async function spotifyPost<T>(user: UserRow, pathname: string, body: unknown): Promise<T> {
+  const token = await getValidAccessToken(user);
+  const res = await fetch(`${SPOTIFY_API}${pathname}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
     cache: "no-store",
   });
   if (!res.ok) {

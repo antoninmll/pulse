@@ -16,6 +16,7 @@ import {
   IconPlay,
   IconShare,
   IconShuffle,
+  IconSpotify,
 } from "./icons";
 
 export type PlaylistData = {
@@ -65,6 +66,53 @@ export default function PlaylistView({
   const [copied, setCopied] = useState(false);
   const [coverUrl, setCoverUrl] = useState(playlist.coverUrl);
   const [coverError, setCoverError] = useState<string | null>(null);
+
+  const [cloning, setCloning] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  async function duplicatePlaylist() {
+    if (!isLoggedIn) {
+      window.location.href = "/api/auth/login";
+      return;
+    }
+    setCloning(true);
+    try {
+      const res = await fetch(`/api/playlists/${playlist.id}/clone`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.shareId) {
+        router.push(`/p/${data.shareId}`);
+        router.refresh();
+      } else {
+        alert(data.error ?? "Impossible de dupliquer la playlist");
+        setCloning(false);
+      }
+    } catch {
+      alert("Une erreur est survenue");
+      setCloning(false);
+    }
+  }
+
+  async function exportToSpotify() {
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/playlists/${playlist.id}/export`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.spotifyUrl) {
+        alert("Playlist exportée avec succès sur Spotify ! Nous allons l'ouvrir.");
+        window.open(data.spotifyUrl, "_blank");
+      } else {
+        alert(data.error ?? "Impossible d'exporter la playlist");
+      }
+    } catch {
+      alert("Une erreur est survenue lors de l'export");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const uris = tracks.map((t) => `spotify:track:${t.spotifyId}`);
   const totalMs = tracks.reduce((acc, t) => acc + t.durationMs, 0);
@@ -247,8 +295,26 @@ export default function PlaylistView({
               {copied ? <IconCheck size={16} /> : <IconShare size={16} />}
               {copied ? "Lien copié" : "Partager"}
             </button>
+            {!isOwner && (
+              <button
+                onClick={duplicatePlaylist}
+                disabled={cloning}
+                className="btn-ghost text-sm border-gold/30 hover:border-gold/60 text-gold"
+              >
+                {cloning ? "Duplication..." : "Dupliquer"}
+              </button>
+            )}
             {isOwner && (
               <>
+                <button
+                  onClick={exportToSpotify}
+                  disabled={exporting || tracks.length === 0}
+                  className="btn-ghost border-emerald-500/30 text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/5 text-sm flex items-center gap-1.5"
+                  title="Exporter la playlist vers ton compte Spotify"
+                >
+                  <IconSpotify size={16} />
+                  {exporting ? "Push..." : "Push Spotify"}
+                </button>
                 <Link href={`/p/${playlist.shareId}/stats`} className="btn-ghost text-sm">
                   <IconChart size={16} />
                   Stats
