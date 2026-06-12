@@ -218,6 +218,25 @@ export function PlayerProvider({
     navigator.mediaSession.playbackState = paused ? "paused" : "playing";
   }, [current, paused]);
 
+  // iOS : alimente le « Now Playing » (Dynamic Island / écran verrouillé).
+  // WebKit n'affiche souvent rien tant que la durée/position ne sont pas
+  // communiquées via setPositionState, même si les métadonnées sont définies.
+  useEffect(() => {
+    if (!("mediaSession" in navigator) || !current) return;
+    if (typeof navigator.mediaSession.setPositionState !== "function") return;
+    const duration = current.durationMs / 1000;
+    if (!duration || !Number.isFinite(duration)) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration,
+        playbackRate: 1,
+        position: Math.min(positionMs / 1000, duration),
+      });
+    } catch {
+      // ignore — certaines valeurs transitoires peuvent être rejetées
+    }
+  }, [current, positionMs]);
+
   // MediaSession action handlers
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
