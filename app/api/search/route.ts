@@ -10,9 +10,10 @@ export async function GET(req: NextRequest) {
   if (!q) return NextResponse.json({ tracks: [] });
 
   try {
+    // Les apps Spotify en mode développement plafonnent la recherche à limit=10
     const data = await spotifyFetch<{ tracks: { items: SpotifyTrack[] } }>(
       user,
-      `/search?type=track&limit=12&q=${encodeURIComponent(q)}`
+      `/search?type=track&limit=10&q=${encodeURIComponent(q)}`
     );
     return NextResponse.json({ tracks: data.tracks.items.map(normalizeTrack) });
   } catch (e) {

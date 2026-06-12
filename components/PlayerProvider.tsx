@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useSettings } from "./SettingsProvider";
 
 export type CurrentTrack = {
   uri: string;
@@ -18,20 +19,36 @@ export type CurrentTrack = {
   durationMs: number;
 };
 
+export type RepeatMode = "off" | "context" | "track";
+
 type PlayerContextValue = {
   ready: boolean;
   error: string | null;
   current: CurrentTrack | null;
   paused: boolean;
   positionMs: number;
-  /** Lance la lecture d'une playlist Pulse à partir d'un index. */
-  playContext: (playlistId: number, uris: string[], index: number) => Promise<void>;
+  /**
+   * Lance la lecture d'une liste d'uris à partir d'un index.
+   * playlistId null = lecture libre (hors playlist Pulse, pas de stats enregistrées).
+   */
+  playContext: (
+    playlistId: number | null,
+    uris: string[],
+    index: number,
+    options?: { shuffle?: boolean }
+  ) => Promise<void>;
   togglePlay: () => void;
   next: () => void;
   prev: () => void;
   seek: (ms: number) => void;
+  /** Volume 0–1, persisté dans le compte. */
+  volume: number;
   setVolume: (v: number) => void;
-  /** uri du contexte playlist en cours (pour surligner le morceau actif) */
+  repeatMode: RepeatMode;
+  cycleRepeat: () => void;
+  shuffle: boolean;
+  toggleShuffle: () => void;
+  /** id du contexte playlist en cours (pour surligner le morceau actif) */
   activePlaylistId: number | null;
 };
 
@@ -49,6 +66,8 @@ async function getToken(): Promise<{ accessToken: string; product: string | null
   return res.json();
 }
 
+const REPEAT_ORDER: RepeatMode[] = ["off", "context", "track"];
+
 export function PlayerProvider({
   enabled,
   children,
@@ -56,10 +75,12 @@ export function PlayerProvider({
   enabled: boolean;
   children: ReactNode;
 }) {
+  const { settings, update: updateSettings } = useSettings();
   const playerRef = useRef<SpotifyPlayer | null>(null);
   const deviceIdRef = useRef<string | null>(null);
   const contextRef = useRef<{ playlistId: number } | null>(null);
   const lastRecordedUriRef = useRef<string | null>(null);
+  const initialVolumeRef = useRef(settings.volume);
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +88,8 @@ export function PlayerProvider({
   const [paused, setPaused] = useState(true);
   const [positionMs, setPositionMs] = useState(0);
   const [activePlaylistId, setActivePlaylistId] = useState<number | null>(null);
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
+  const [shuffle, setShuffle] = useState(false);
 
   const recordPlay = useCallback((uri: string) => {
     const ctx = contextRef.current;
@@ -96,7 +119,7 @@ export function PlayerProvider({
             .then((d) => cb(d.accessToken))
             .catch(() => setError("Session Spotify expirée — reconnecte-toi."));
         },
-        volume: 0.7,
+        volume: initialVolumeRef.current,
       });
 
       player.addListener("ready", ({ device_id }) => {
@@ -133,6 +156,8 @@ export function PlayerProvider({
         });
         setPaused(state.paused);
         setPositionMs(state.position);
+        setRepeatMode(REPEAT_ORDER[state.repeat_mode] ?? "off");
+        setShuffle(state.shuffle);
         if (!state.paused) recordPlay(t.uri);
       });
 
@@ -167,8 +192,29 @@ export function PlayerProvider({
     return () => clearInterval(interval);
   }, [paused, current]);
 
+  /** Appel direct à l'API Web Spotify sur le device du lecteur. */
+  const playerApi = useCallback(async (path: string, method = "PUT"): Promise<Response | null> => {
+    try {
+      const { accessToken } = await getToken();
+      const deviceId = deviceIdRef.current;
+      if (!deviceId) return null;
+      const sep = path.includes("?") ? "&" : "?";
+      return await fetch(`https://api.spotify.com/v1/me/player${path}${sep}device_id=${deviceId}`, {
+        method,
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    } catch {
+      return null;
+    }
+  }, []);
+
   const playContext = useCallback(
-    async (playlistId: number, uris: string[], index: number) => {
+    async (
+      playlistId: number | null,
+      uris: string[],
+      index: number,
+      options?: { shuffle?: boolean }
+    ) => {
       setError(null);
       try {
         const { accessToken, product } = await getToken();
@@ -181,7 +227,20 @@ export function PlayerProvider({
           setError("Le lecteur démarre… réessaie dans quelques secondes.");
           return;
         }
-        contextRef.current = { playlistId };
+
+        let queue = uris;
+        let startIndex = index;
+        if (options?.shuffle) {
+          // Mélange Fisher-Yates côté client : fiable même avec une liste d'uris
+          queue = [...uris];
+          for (let i = queue.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [queue[i], queue[j]] = [queue[j], queue[i]];
+          }
+          startIndex = 0;
+        }
+
+        contextRef.current = playlistId !== null ? { playlistId } : null;
         lastRecordedUriRef.current = null;
         setActivePlaylistId(playlistId);
 
@@ -193,7 +252,7 @@ export function PlayerProvider({
               Authorization: `Bearer ${accessToken}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ uris, offset: { position: index } }),
+            body: JSON.stringify({ uris: queue, offset: { position: startIndex } }),
           }
         );
         if (res.status === 403) {
@@ -206,6 +265,26 @@ export function PlayerProvider({
       }
     },
     []
+  );
+
+  const cycleRepeat = useCallback(() => {
+    const next = REPEAT_ORDER[(REPEAT_ORDER.indexOf(repeatMode) + 1) % REPEAT_ORDER.length];
+    setRepeatMode(next); // optimiste, confirmé par player_state_changed
+    playerApi(`/repeat?state=${next}`).catch(() => {});
+  }, [repeatMode, playerApi]);
+
+  const toggleShuffle = useCallback(() => {
+    const next = !shuffle;
+    setShuffle(next);
+    playerApi(`/shuffle?state=${next}`).catch(() => {});
+  }, [shuffle, playerApi]);
+
+  const setVolume = useCallback(
+    (v: number) => {
+      playerRef.current?.setVolume(v);
+      updateSettings({ volume: v });
+    },
+    [updateSettings]
   );
 
   const value: PlayerContextValue = {
@@ -222,7 +301,12 @@ export function PlayerProvider({
       setPositionMs(ms);
       playerRef.current?.seek(ms);
     },
-    setVolume: (v) => playerRef.current?.setVolume(v),
+    volume: settings.volume,
+    setVolume,
+    repeatMode,
+    cycleRepeat,
+    shuffle,
+    toggleShuffle,
     activePlaylistId,
   };
 

@@ -13,6 +13,9 @@ interface WebPlaybackState {
   paused: boolean;
   position: number;
   duration: number;
+  /** 0 = off, 1 = playlist en boucle, 2 = titre en boucle */
+  repeat_mode: 0 | 1 | 2;
+  shuffle: boolean;
   track_window: {
     current_track: WebPlaybackTrack;
   };

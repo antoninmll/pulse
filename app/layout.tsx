@@ -3,6 +3,8 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import Nav from "@/components/Nav";
 import PlayerBar from "@/components/PlayerBar";
 import { PlayerProvider } from "@/components/PlayerProvider";
+import { SettingsProvider } from "@/components/SettingsProvider";
+import { parseSettings } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 import "./globals.css";
 
@@ -21,28 +23,31 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getCurrentUser();
+  const settings = parseSettings(user?.settings);
 
   return (
     <html lang="fr" className={`${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <div className="ambient" />
-        <PlayerProvider enabled={Boolean(user)}>
-          <Nav
-            user={
-              user
-                ? {
-                    username: user.username,
-                    displayName: user.display_name,
-                    avatarUrl: user.avatar_url,
-                  }
-                : null
-            }
-          />
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-40 pt-8 sm:px-6">
-            {children}
-          </main>
-          <PlayerBar />
-        </PlayerProvider>
+        <SettingsProvider initial={settings}>
+          <PlayerProvider enabled={Boolean(user)}>
+            <Nav
+              user={
+                user
+                  ? {
+                      username: user.username,
+                      displayName: user.display_name,
+                      avatarUrl: user.avatar_url,
+                    }
+                  : null
+              }
+            />
+            <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-40 pt-8 sm:px-6">
+              {children}
+            </main>
+            <PlayerBar />
+          </PlayerProvider>
+        </SettingsProvider>
       </body>
     </html>
   );

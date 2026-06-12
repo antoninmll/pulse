@@ -1,7 +1,16 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { IconLink, IconMusic } from "@/components/icons";
+
+type SpotifyPlaylistItem = {
+  spotifyId: string;
+  name: string;
+  coverUrl: string | null;
+  trackCount: number | null;
+  owner: string | null;
+};
 
 function NewPlaylistForm() {
   const router = useRouter();
@@ -16,6 +25,23 @@ function NewPlaylistForm() {
   const [importUrl, setImportUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Sélecteur : playlists du compte Spotify
+  const [myLists, setMyLists] = useState<SpotifyPlaylistItem[] | null>(null);
+  const [listsError, setListsError] = useState<string | null>(null);
+  const [importingId, setImportingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState("");
+
+  useEffect(() => {
+    if (tab !== "import" || myLists !== null) return;
+    fetch("/api/playlists/import")
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.ok) setMyLists(data.playlists);
+        else setListsError(data.error ?? "Chargement impossible");
+      })
+      .catch(() => setListsError("Chargement impossible"));
+  }, [tab, myLists]);
 
   async function createPlaylist(e: React.FormEvent) {
     e.preventDefault();
@@ -35,14 +61,13 @@ function NewPlaylistForm() {
     }
   }
 
-  async function importPlaylist(e: React.FormEvent) {
-    e.preventDefault();
+  async function doImport(payload: { url?: string; spotifyId?: string }) {
     setLoading(true);
     setError(null);
     const res = await fetch("/api/playlists/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: importUrl }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
@@ -50,8 +75,12 @@ function NewPlaylistForm() {
     } else {
       setError(data.error ?? "Import impossible");
       setLoading(false);
+      setImportingId(null);
     }
   }
+
+  const visibleLists =
+    myLists?.filter((p) => p.name.toLowerCase().includes(filter.trim().toLowerCase())) ?? null;
 
   return (
     <div className="mx-auto max-w-xl pt-8">
@@ -136,31 +165,113 @@ function NewPlaylistForm() {
           </p>
         </form>
       ) : (
-        <form onSubmit={importPlaylist} className="card mt-4 space-y-5 p-6">
+        <div className="card mt-4 space-y-5 p-6">
           <div>
-            <label htmlFor="url" className="mb-1.5 block text-sm font-medium">
-              Lien de la playlist Spotify
-            </label>
-            <input
-              id="url"
-              className="input"
-              placeholder="https://open.spotify.com/playlist/…"
-              value={importUrl}
-              onChange={(e) => setImportUrl(e.target.value)}
-              autoFocus
-              required
-            />
-            <p className="mt-1.5 text-xs text-muted">
-              Dans Spotify : clic droit sur la playlist → Partager → Copier le lien.
+            <p className="text-sm font-medium">Tes playlists Spotify</p>
+            <p className="mt-1 text-xs text-muted">
+              Clique sur une playlist pour l&apos;importer dans Pulse.
             </p>
           </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {listsError && <p className="text-sm text-red-400">{listsError}</p>}
 
-          <button type="submit" disabled={loading} className="btn-primary w-full justify-center">
-            {loading ? "Import en cours…" : "Importer la playlist"}
-          </button>
-        </form>
+          {myLists === null && !listsError && (
+            <p className="py-6 text-center text-sm text-muted">Chargement de tes playlists…</p>
+          )}
+
+          {myLists !== null && myLists.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted">
+              Aucune playlist trouvée sur ton compte Spotify.
+            </p>
+          )}
+
+          {myLists !== null && myLists.length > 0 && (
+            <>
+              {myLists.length > 6 && (
+                <input
+                  className="input"
+                  placeholder="Filtrer…"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                />
+              )}
+              <ul className="max-h-96 overflow-y-auto rounded-xl border border-white/5">
+                {visibleLists!.map((p) => (
+                  <li key={p.spotifyId} className="border-b border-white/5 last:border-0">
+                    <button
+                      onClick={() => {
+                        setImportingId(p.spotifyId);
+                        doImport({ spotifyId: p.spotifyId });
+                      }}
+                      disabled={loading}
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-white/5 disabled:opacity-60"
+                    >
+                      {p.coverUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.coverUrl} alt="" className="h-11 w-11 rounded object-cover" />
+                      ) : (
+                        <span className="flex h-11 w-11 items-center justify-center rounded bg-white/10 text-gold/50">
+                          <IconMusic size={18} />
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm">{p.name}</span>
+                        <span className="block truncate text-xs text-muted">
+                          {p.trackCount !== null
+                            ? `${p.trackCount} morceau${p.trackCount > 1 ? "x" : ""}`
+                            : ""}
+                          {p.trackCount !== null && p.owner ? " · " : ""}
+                          {p.owner ? `par ${p.owner}` : ""}
+                        </span>
+                      </span>
+                      <span className="shrink-0 rounded-full border border-gold/40 px-3 py-1 text-xs font-medium text-gold">
+                        {importingId === p.spotifyId && loading ? "Import…" : "Importer"}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              doImport({ url: importUrl });
+            }}
+            className="space-y-3 border-t border-white/5 pt-5"
+          >
+            <label htmlFor="url" className="block text-sm font-medium">
+              Ou colle un lien de playlist
+            </label>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
+                <IconLink size={16} />
+              </span>
+              <input
+                id="url"
+                className="input input-prefixed"
+                placeholder="https://open.spotify.com/playlist/…"
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted">
+              Les playlists générées par Spotify (Daily Mix, Blend, Top 50…) ne sont pas
+              importables — Spotify en bloque l&apos;accès aux applications tierces.
+            </p>
+
+            {error && <p className="text-sm text-red-400">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading || !importUrl.trim()}
+              className="btn-primary w-full justify-center"
+            >
+              {loading && !importingId ? "Import en cours…" : "Importer depuis le lien"}
+            </button>
+          </form>
+        </div>
       )}
     </div>
   );

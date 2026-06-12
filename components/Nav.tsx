@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Avatar from "./Avatar";
-import { IconSpotify, IconWave } from "./icons";
+import { IconHome, IconSpotify, IconWave } from "./icons";
 
 type NavUser = {
   username: string | null;
@@ -11,6 +12,7 @@ type NavUser = {
 };
 
 export default function Nav({ user }: { user: NavUser | null }) {
+  const pathname = usePathname();
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0a0a0b]/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
@@ -27,8 +29,19 @@ export default function Nav({ user }: { user: NavUser | null }) {
           {user ? (
             <>
               <Link
+                href="/"
+                className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-sm transition hover:text-gold ${
+                  pathname === "/" ? "text-gold" : "text-muted"
+                }`}
+              >
+                <IconHome size={15} />
+                Accueil
+              </Link>
+              <Link
                 href="/discover"
-                className="rounded-full px-3 py-2 text-sm text-muted transition hover:text-gold"
+                className={`rounded-full px-3 py-2 text-sm transition hover:text-gold ${
+                  pathname === "/discover" ? "text-gold" : "text-muted"
+                }`}
               >
                 Découvrir
               </Link>

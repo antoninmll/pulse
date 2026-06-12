@@ -1,15 +1,24 @@
-import PlaylistCard, { type PlaylistCardData } from "@/components/PlaylistCard";
+import DiscoverClient from "@/components/DiscoverClient";
+import { type PlaylistCardData } from "@/components/PlaylistCard";
 import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function DiscoverPage() {
+  const user = await getCurrentUser();
   const playlists = db
     .prepare(
       `SELECT p.share_id AS shareId, p.name, p.description, p.cover_url AS coverUrl,
               u.username AS ownerName,
               (SELECT COUNT(*) FROM playlist_tracks pt WHERE pt.playlist_id = p.id) AS trackCount,
-              (SELECT COUNT(*) FROM plays pl WHERE pl.playlist_id = p.id) AS playCount
+              (SELECT COUNT(*) FROM plays pl WHERE pl.playlist_id = p.id) AS playCount,
+              (SELECT json_group_array(album_art) FROM (
+                 SELECT t.album_art FROM playlist_tracks pt
+                 JOIN tracks t ON t.id = pt.track_id
+                 WHERE pt.playlist_id = p.id AND t.album_art IS NOT NULL
+                 ORDER BY pt.position LIMIT 12
+               )) AS artsJson
        FROM playlists p
        JOIN users u ON u.id = p.owner_id
        WHERE p.is_public = 1
@@ -22,24 +31,14 @@ export default async function DiscoverPage() {
     <div>
       <p className="eyebrow">Exploration</p>
       <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
-        Découvrir les <span className="gold-text">playlists</span>
+        Découvrir <span className="gold-text">la communauté</span>
       </h1>
       <p className="mt-2 text-sm text-muted">
-        Les playlists publiques de la communauté, classées par popularité.
+        Cherche une playlist, un utilisateur ou une musique — ou explore les playlists
+        publiques classées par popularité.
       </p>
 
-      {playlists.length === 0 ? (
-        <div className="card mt-10 px-6 py-16 text-center text-muted">
-          Aucune playlist publique pour l&apos;instant — sois la première personne à en partager
-          une !
-        </div>
-      ) : (
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {playlists.map((p) => (
-            <PlaylistCard key={p.shareId} playlist={p} />
-          ))}
-        </div>
-      )}
+      <DiscoverClient initialPlaylists={playlists} isLoggedIn={Boolean(user)} />
     </div>
   );
 }

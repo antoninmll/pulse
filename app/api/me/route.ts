@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, publicUser } from "@/lib/db";
+import { db, parseSettings, publicUser } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
@@ -7,7 +7,13 @@ const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non connecté" }, { status: 401 });
-  return NextResponse.json({ user: { ...publicUser(user), product: user.spotify_product } });
+  return NextResponse.json({
+    user: {
+      ...publicUser(user),
+      product: user.spotify_product,
+      settings: parseSettings(user.settings),
+    },
+  });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -43,6 +49,17 @@ export async function PATCH(req: NextRequest) {
     }
     updates.push("username = ?");
     values.push(body.username);
+  }
+
+  if (body.settings && typeof body.settings === "object") {
+    const current = parseSettings(user.settings);
+    const next = { ...current };
+    if (typeof body.settings.visualizer === "boolean") next.visualizer = body.settings.visualizer;
+    if (typeof body.settings.volume === "number") {
+      next.volume = Math.min(1, Math.max(0, body.settings.volume));
+    }
+    updates.push("settings = ?");
+    values.push(JSON.stringify(next));
   }
 
   if (updates.length === 0) return NextResponse.json({ ok: true });

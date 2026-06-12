@@ -1,7 +1,18 @@
 "use client";
 
 import { usePlayer } from "./PlayerProvider";
-import { IconNext, IconPause, IconPlay, IconPrev } from "./icons";
+import { useSettings } from "./SettingsProvider";
+import Visualizer from "./Visualizer";
+import {
+  IconNext,
+  IconPause,
+  IconPlay,
+  IconPrev,
+  IconRepeat,
+  IconRepeatOne,
+  IconShuffle,
+  IconVolume,
+} from "./icons";
 
 function fmt(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -9,8 +20,23 @@ function fmt(ms: number): string {
 }
 
 export default function PlayerBar() {
-  const { current, paused, positionMs, togglePlay, next, prev, seek, setVolume, error } =
-    usePlayer();
+  const {
+    current,
+    paused,
+    positionMs,
+    togglePlay,
+    next,
+    prev,
+    seek,
+    volume,
+    setVolume,
+    repeatMode,
+    cycleRepeat,
+    shuffle,
+    toggleShuffle,
+    error,
+  } = usePlayer();
+  const { settings } = useSettings();
 
   if (error) {
     return (
@@ -24,17 +50,30 @@ export default function PlayerBar() {
 
   if (!current) return null;
 
+  const repeatLabel =
+    repeatMode === "off"
+      ? "Répéter : désactivé"
+      : repeatMode === "context"
+        ? "Répéter : playlist en boucle"
+        : "Répéter : titre en boucle";
+
   return (
     <div className="fixed bottom-4 left-1/2 z-50 w-[min(880px,94vw)] -translate-x-1/2">
-      <div className="card flex items-center gap-4 bg-[#0c0c0d]/95 px-4 py-3 shadow-[0_18px_60px_-18px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+      <div className="card relative flex items-center gap-4 overflow-hidden bg-[#0c0c0d]/95 px-4 py-3 shadow-[0_18px_60px_-18px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+        {settings.visualizer && <Visualizer playing={!paused} />}
+
         {current.albumArt ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={current.albumArt} alt="" className="h-12 w-12 rounded-md object-cover" />
+          <img
+            src={current.albumArt}
+            alt=""
+            className="relative h-12 w-12 rounded-md object-cover"
+          />
         ) : (
-          <div className="h-12 w-12 rounded-md bg-white/10" />
+          <div className="relative h-12 w-12 rounded-md bg-white/10" />
         )}
 
-        <div className="min-w-0 flex-1">
+        <div className="relative min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {!paused && (
               <span className="eq shrink-0">
@@ -65,7 +104,17 @@ export default function PlayerBar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="relative flex items-center gap-1">
+          <button
+            onClick={toggleShuffle}
+            className={`hidden rounded-full p-2 transition sm:block ${
+              shuffle ? "text-gold" : "text-muted hover:text-foreground"
+            }`}
+            aria-label={shuffle ? "Désactiver la lecture aléatoire" : "Lecture aléatoire"}
+            title={shuffle ? "Lecture aléatoire activée" : "Lecture aléatoire"}
+          >
+            <IconShuffle size={16} />
+          </button>
           <button
             onClick={prev}
             className="rounded-full p-2 text-muted transition hover:text-foreground"
@@ -87,17 +136,32 @@ export default function PlayerBar() {
           >
             <IconNext size={18} />
           </button>
+          <button
+            onClick={cycleRepeat}
+            className={`hidden rounded-full p-2 transition sm:block ${
+              repeatMode !== "off" ? "text-gold" : "text-muted hover:text-foreground"
+            }`}
+            aria-label={repeatLabel}
+            title={repeatLabel}
+          >
+            {repeatMode === "track" ? <IconRepeatOne size={16} /> : <IconRepeat size={16} />}
+          </button>
         </div>
 
-        <input
-          type="range"
-          min={0}
-          max={100}
-          defaultValue={70}
-          onChange={(e) => setVolume(Number(e.target.value) / 100)}
-          className="hidden h-1 w-20 cursor-pointer md:block"
-          aria-label="Volume"
-        />
+        <div className="relative hidden items-center gap-1.5 md:flex">
+          <span className="text-muted">
+            <IconVolume size={15} />
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(volume * 100)}
+            onChange={(e) => setVolume(Number(e.target.value) / 100)}
+            className="h-1 w-20 cursor-pointer"
+            aria-label="Volume"
+          />
+        </div>
       </div>
     </div>
   );

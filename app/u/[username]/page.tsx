@@ -20,7 +20,13 @@ export default async function PublicProfilePage({
     .prepare(
       `SELECT p.share_id AS shareId, p.name, p.description, p.cover_url AS coverUrl,
               (SELECT COUNT(*) FROM playlist_tracks pt WHERE pt.playlist_id = p.id) AS trackCount,
-              (SELECT COUNT(*) FROM plays pl WHERE pl.playlist_id = p.id) AS playCount
+              (SELECT COUNT(*) FROM plays pl WHERE pl.playlist_id = p.id) AS playCount,
+              (SELECT json_group_array(album_art) FROM (
+                 SELECT t.album_art FROM playlist_tracks pt
+                 JOIN tracks t ON t.id = pt.track_id
+                 WHERE pt.playlist_id = p.id AND t.album_art IS NOT NULL
+                 ORDER BY pt.position LIMIT 12
+               )) AS artsJson
        FROM playlists p WHERE p.owner_id = ? AND p.is_public = 1
        ORDER BY p.created_at DESC`
     )

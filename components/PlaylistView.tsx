@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { usePlayer } from "./PlayerProvider";
+import PlaylistCover from "./PlaylistCover";
 import SearchAdd from "./SearchAdd";
 import {
+  IconCamera,
   IconChart,
   IconCheck,
   IconClose,
   IconGlobe,
   IconLock,
-  IconMusic,
   IconPlay,
   IconShare,
+  IconShuffle,
 } from "./icons";
 
 export type PlaylistData = {
@@ -56,10 +58,13 @@ export default function PlaylistView({
 }) {
   const router = useRouter();
   const player = usePlayer();
+  const coverFileRef = useRef<HTMLInputElement>(null);
   const [tracks, setTracks] = useState(initialTracks);
   const [editing, setEditing] = useState(false);
   const [isPublic, setIsPublic] = useState(playlist.isPublic);
   const [copied, setCopied] = useState(false);
+  const [coverUrl, setCoverUrl] = useState(playlist.coverUrl);
+  const [coverError, setCoverError] = useState<string | null>(null);
 
   const uris = tracks.map((t) => `spotify:track:${t.spotifyId}`);
   const totalMs = tracks.reduce((acc, t) => acc + t.durationMs, 0);
@@ -115,21 +120,70 @@ export default function PlaylistView({
     if (res.ok) router.push("/");
   }
 
+  async function uploadCover(file: File) {
+    setCoverError(null);
+    const form = new FormData();
+    form.append("cover", file);
+    const res = await fetch(`/api/playlists/${playlist.id}/cover`, {
+      method: "POST",
+      body: form,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setCoverUrl(data.coverUrl);
+      router.refresh();
+    } else {
+      setCoverError(data.error ?? "Envoi impossible");
+    }
+  }
+
+  async function resetCover() {
+    setCoverError(null);
+    const res = await fetch(`/api/playlists/${playlist.id}/cover`, { method: "DELETE" });
+    if (res.ok) {
+      setCoverUrl(null);
+      router.refresh();
+    }
+  }
+
   return (
     <div>
       {/* ── En-tête ─────────────────────────────────── */}
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
-        <div className="card h-44 w-44 shrink-0 overflow-hidden sm:h-52 sm:w-52">
-          {playlist.coverUrl || tracks[0]?.albumArt ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={playlist.coverUrl ?? tracks[0].albumArt!}
-              alt=""
-              className="h-full w-full object-cover"
+        <div className="group/cover relative h-44 w-44 shrink-0 sm:h-52 sm:w-52">
+          <div className="card h-full w-full overflow-hidden">
+            <PlaylistCover
+              coverUrl={coverUrl}
+              arts={tracks.map((t) => t.albumArt).filter((a): a is string => Boolean(a))}
+              seedKey={playlist.shareId}
+              iconSize={52}
             />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-white/[0.03] text-gold/40">
-              <IconMusic size={52} strokeWidth={1.2} />
+          </div>
+          {isOwner && editing && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-[0.875rem] bg-black/60 opacity-0 backdrop-blur-[2px] transition group-hover/cover:opacity-100">
+              <button
+                onClick={() => coverFileRef.current?.click()}
+                className="btn-ghost border-white/30 text-xs"
+              >
+                <IconCamera size={14} />
+                Changer la cover
+              </button>
+              {coverUrl && (
+                <button onClick={resetCover} className="btn-ghost border-white/30 text-xs">
+                  Cover automatique
+                </button>
+              )}
+              <input
+                ref={coverFileRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) uploadCover(f);
+                  e.target.value = "";
+                }}
+              />
             </div>
           )}
         </div>
@@ -174,6 +228,21 @@ export default function PlaylistView({
               <IconPlay size={16} />
               Lecture
             </button>
+            <button
+              onClick={() => {
+                if (!isLoggedIn) {
+                  window.location.href = "/api/auth/login";
+                  return;
+                }
+                player.playContext(playlist.id, uris, 0, { shuffle: true });
+              }}
+              disabled={tracks.length < 2}
+              className="btn-ghost text-sm"
+              title="Lire la playlist dans un ordre aléatoire"
+            >
+              <IconShuffle size={16} />
+              Aléatoire
+            </button>
             <button onClick={share} className="btn-ghost text-sm">
               {copied ? <IconCheck size={16} /> : <IconShare size={16} />}
               {copied ? "Lien copié" : "Partager"}
@@ -193,6 +262,8 @@ export default function PlaylistView({
               </>
             )}
           </div>
+
+          {coverError && <p className="mt-2 text-sm text-red-400">{coverError}</p>}
 
           {isOwner && editing && (
             <div className="mt-3 flex flex-wrap gap-2">

@@ -91,6 +91,14 @@ export async function getValidAccessToken(user: UserRow): Promise<string> {
   return t.access_token;
 }
 
+export class SpotifyApiError extends Error {
+  status: number;
+  constructor(status: number, body: string) {
+    super(`Spotify API ${status}: ${body}`);
+    this.status = status;
+  }
+}
+
 /** Appel à l'API Spotify avec le compte de l'utilisateur. */
 export async function spotifyFetch<T>(user: UserRow, pathname: string): Promise<T> {
   const token = await getValidAccessToken(user);
@@ -99,7 +107,7 @@ export async function spotifyFetch<T>(user: UserRow, pathname: string): Promise<
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(`Spotify API ${res.status}: ${await res.text()}`);
+    throw new SpotifyApiError(res.status, await res.text());
   }
   return res.json();
 }

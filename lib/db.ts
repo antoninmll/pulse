@@ -67,6 +67,11 @@ function createDb(): Database.Database {
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA);
+  // Migrations additives sur les bases existantes
+  const userCols = (db.pragma("table_info(users)") as { name: string }[]).map((c) => c.name);
+  if (!userCols.includes("settings")) {
+    db.exec("ALTER TABLE users ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'");
+  }
   return db;
 }
 
@@ -86,7 +91,26 @@ export type UserRow = {
   refresh_token: string | null;
   token_expires_at: number;
   created_at: number;
+  settings: string;
 };
+
+/** Préférences utilisateur persistées (JSON dans users.settings). */
+export type UserSettings = {
+  /** Visualiseur audio dans la barre de lecture */
+  visualizer: boolean;
+  /** Volume du lecteur (0 à 1), synchronisé entre appareils */
+  volume: number;
+};
+
+export const DEFAULT_SETTINGS: UserSettings = { visualizer: true, volume: 0.7 };
+
+export function parseSettings(raw: string | null | undefined): UserSettings {
+  try {
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw || "{}") };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
 
 export type PlaylistRow = {
   id: number;

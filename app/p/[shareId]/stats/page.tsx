@@ -38,11 +38,18 @@ function DayChart({ days }: { days: { day: string; plays: number }[] }) {
   const W = 700;
   const H = 180;
   const PAD = 8;
-  const max = Math.max(1, ...series.map((s) => s.plays));
-  const step = (W - PAD * 2) / (series.length - 1);
+  const PAD_LEFT = 34; // place pour l'échelle verticale
+  const rawMax = Math.max(1, ...series.map((s) => s.plays));
+  // Échelle « propre » : maximum arrondi pour des graduations entières lisibles
+  const tickCount = Math.min(4, rawMax);
+  const tickStep = Math.max(1, Math.ceil(rawMax / tickCount));
+  const max = tickStep * tickCount;
+  const ticks = Array.from({ length: tickCount + 1 }, (_, i) => i * tickStep);
+
+  const step = (W - PAD_LEFT - PAD) / (series.length - 1);
   const y = (v: number) => H - PAD - (v / max) * (H - PAD * 2);
-  const points = series.map((s, i) => `${PAD + i * step},${y(s.plays)}`).join(" ");
-  const area = `${PAD},${H - PAD} ${points} ${W - PAD},${H - PAD}`;
+  const points = series.map((s, i) => `${PAD_LEFT + i * step},${y(s.plays)}`).join(" ");
+  const area = `${PAD_LEFT},${H - PAD} ${points} ${W - PAD},${H - PAD}`;
 
   return (
     <div>
@@ -53,6 +60,28 @@ function DayChart({ days }: { days: { day: string; plays: number }[] }) {
             <stop offset="100%" stopColor="#e3b341" stopOpacity="0" />
           </linearGradient>
         </defs>
+        {/* Échelle verticale : graduations + lignes repères */}
+        {ticks.map((v) => (
+          <g key={v}>
+            <line
+              x1={PAD_LEFT}
+              x2={W - PAD}
+              y1={y(v)}
+              y2={y(v)}
+              stroke="rgba(255,255,255,0.06)"
+              strokeWidth="1"
+            />
+            <text
+              x={PAD_LEFT - 7}
+              y={y(v) + 3.5}
+              textAnchor="end"
+              fontSize="10"
+              fill="#837e72"
+            >
+              {v}
+            </text>
+          </g>
+        ))}
         <polygon points={area} fill="url(#area)" />
         <polyline
           points={points}
@@ -65,14 +94,16 @@ function DayChart({ days }: { days: { day: string; plays: number }[] }) {
         {series.map((s, i) => (
           <circle
             key={i}
-            cx={PAD + i * step}
+            cx={PAD_LEFT + i * step}
             cy={y(s.plays)}
             r={s.plays > 0 ? 3.5 : 0}
             fill="#e3b341"
-          />
+          >
+            <title>{`${s.label} : ${s.plays} écoute${s.plays > 1 ? "s" : ""}`}</title>
+          </circle>
         ))}
       </svg>
-      <div className="mt-1 flex justify-between text-[10px] text-muted">
+      <div className="mt-1 flex justify-between pl-8 text-[10px] text-muted">
         <span>{series[0].label}</span>
         <span>{series[6].label}</span>
         <span>{series[13].label}</span>

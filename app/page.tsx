@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import PlaylistCard, { type PlaylistCardData } from "@/components/PlaylistCard";
+import MyPlaylistsGrid from "@/components/MyPlaylistsGrid";
+import { type PlaylistCardData } from "@/components/PlaylistCard";
 import { IconChart, IconImport, IconShare, IconSpotify } from "@/components/icons";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/session";
@@ -98,7 +99,13 @@ export default async function Home({
     .prepare(
       `SELECT p.share_id AS shareId, p.name, p.description, p.cover_url AS coverUrl, p.is_public AS isPublic,
               (SELECT COUNT(*) FROM playlist_tracks pt WHERE pt.playlist_id = p.id) AS trackCount,
-              (SELECT COUNT(*) FROM plays pl WHERE pl.playlist_id = p.id) AS playCount
+              (SELECT COUNT(*) FROM plays pl WHERE pl.playlist_id = p.id) AS playCount,
+              (SELECT json_group_array(album_art) FROM (
+                 SELECT t.album_art FROM playlist_tracks pt
+                 JOIN tracks t ON t.id = pt.track_id
+                 WHERE pt.playlist_id = p.id AND t.album_art IS NOT NULL
+                 ORDER BY pt.position LIMIT 12
+               )) AS artsJson
        FROM playlists p WHERE p.owner_id = ? ORDER BY p.created_at DESC`
     )
     .all(user.id) as PlaylistCardData[];
@@ -147,11 +154,7 @@ export default async function Home({
           </div>
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {myPlaylists.map((p) => (
-            <PlaylistCard key={p.shareId} playlist={p} />
-          ))}
-        </div>
+        <MyPlaylistsGrid playlists={myPlaylists} />
       )}
     </div>
   );

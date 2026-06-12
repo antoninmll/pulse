@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import Avatar from "./Avatar";
+import { useSettings } from "./SettingsProvider";
+import { usePlayer } from "./PlayerProvider";
+import { IconVolume, IconWave } from "./icons";
 
 type ProfileData = {
   username: string;
@@ -14,6 +17,8 @@ type ProfileData = {
 
 export default function ProfileForm({ initial }: { initial: ProfileData }) {
   const router = useRouter();
+  const { settings, update: updateSettings } = useSettings();
+  const { volume, setVolume } = usePlayer();
   const fileRef = useRef<HTMLInputElement>(null);
   const [username, setUsername] = useState(initial.username);
   const [displayName, setDisplayName] = useState(initial.displayName);
@@ -145,6 +150,65 @@ export default function ProfileForm({ initial }: { initial: ProfileData }) {
             {saving ? "Enregistrement…" : "Enregistrer"}
           </button>
         </form>
+      </div>
+
+      <div className="card mt-4 p-5">
+        <p className="eyebrow">Paramètres</p>
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold">
+              <IconWave size={17} />
+            </span>
+            <div>
+              <p className="text-sm font-medium">Visualiseur audio</p>
+              <p className="text-xs text-muted">
+                Barres animées dans la fenêtre de lecture en bas de l&apos;écran.
+              </p>
+            </div>
+          </div>
+          <button
+            role="switch"
+            aria-checked={settings.visualizer}
+            onClick={() => updateSettings({ visualizer: !settings.visualizer })}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+              settings.visualizer ? "bg-gold" : "bg-white/15"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-[#0a0a0b] transition-all ${
+                settings.visualizer ? "left-[22px]" : "left-0.5"
+              }`}
+            />
+          </button>
+        </div>
+
+        <div className="mt-5 flex items-center justify-between gap-4 border-t border-white/5 pt-5">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold">
+              <IconVolume size={17} />
+            </span>
+            <div>
+              <p className="text-sm font-medium">Volume du lecteur</p>
+              <p className="text-xs text-muted">
+                Synchronisé avec ton compte — conservé d&apos;un appareil à l&apos;autre.
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round(volume * 100)}
+              onChange={(e) => setVolume(Number(e.target.value) / 100)}
+              className="h-1 w-28 cursor-pointer"
+              aria-label="Volume"
+            />
+            <span className="w-8 text-right text-xs tabular-nums text-muted">
+              {Math.round(volume * 100)}%
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="card mt-4 flex items-center justify-between p-5">
