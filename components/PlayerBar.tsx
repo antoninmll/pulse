@@ -60,7 +60,13 @@ export default function PlayerBar() {
   return (
     <div className="fixed bottom-4 left-1/2 z-50 w-[min(880px,94vw)] -translate-x-1/2">
       <div className="card relative flex items-center gap-4 overflow-hidden bg-[#0c0c0d]/95 px-4 py-3 shadow-[0_18px_60px_-18px_rgba(0,0,0,0.9)] backdrop-blur-xl">
-        {settings.visualizer && <Visualizer playing={!paused} theme={settings.theme} />}
+        {settings.visualizer && (
+          <div className={`pointer-events-none absolute inset-0 h-full w-full overflow-hidden z-0 transition-opacity duration-500 ${
+            paused ? "opacity-0" : "opacity-20"
+          }`}>
+            <Visualizer playing={!paused} theme={settings.theme} />
+          </div>
+        )}
 
         {current.albumArt ? (
           // eslint-disable-next-line @next/next/no-img-element

@@ -60,6 +60,7 @@ export default function HeaderSearch() {
 
   // Recherche débouncée
   useEffect(() => {
+    let active = true;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = query.trim();
     if (q.length < 2) {
@@ -73,6 +74,7 @@ export default function HeaderSearch() {
       try {
         const res = await fetch(`/api/discover?q=${encodeURIComponent(q)}&type=${type}`);
         const data = await res.json();
+        if (!active) return;
         if (res.ok) {
           setResults(data.results ?? []);
           setError(null);
@@ -81,13 +83,15 @@ export default function HeaderSearch() {
           setError(data.error ?? "La recherche a échoué");
         }
       } catch {
+        if (!active) return;
         setResults([]);
         setError("La recherche a échoué");
       } finally {
-        setSearching(false);
+        if (active) setSearching(false);
       }
     }, 320);
     return () => {
+      active = false;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query, type]);
@@ -143,7 +147,11 @@ export default function HeaderSearch() {
             {TYPE_TABS.map(([key, label]) => (
               <button
                 key={key}
-                onClick={() => setType(key)}
+                onClick={() => {
+                  setType(key);
+                  setResults([]);
+                  setError(null);
+                }}
                 className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                   type === key ? "bg-gold text-[var(--on-gold)]" : "text-muted hover:text-gold"
                 }`}
