@@ -34,7 +34,7 @@ export function getAuthUrl(state: string): string {
     redirect_uri: redirectUri(),
     scope: SCOPES,
     state,
-    show_dialog: "false",
+    show_dialog: "true",
   });
   return `${ACCOUNTS}/authorize?${params}`;
 }
@@ -117,7 +117,9 @@ export async function spotifyFetch<T>(user: UserRow, pathname: string): Promise<
 /** Envoi d'une requête POST à l'API Spotify avec le compte de l'utilisateur. */
 export async function spotifyPost<T>(user: UserRow, pathname: string, body: unknown): Promise<T> {
   const token = await getValidAccessToken(user);
-  const res = await fetch(`${SPOTIFY_API}${pathname}`, {
+  const url = `${SPOTIFY_API}${pathname}`;
+  console.log(`[spotifyPost] POST ${url}`);
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -127,9 +129,14 @@ export async function spotifyPost<T>(user: UserRow, pathname: string, body: unkn
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new SpotifyApiError(res.status, await res.text());
+    const errorBody = await res.text();
+    console.error(`[spotifyPost] ERROR ${res.status} on ${url}:`, errorBody);
+    throw new SpotifyApiError(res.status, errorBody);
   }
-  return res.json();
+  // Some Spotify endpoints return 201 with a body, handle empty responses
+  const text = await res.text();
+  if (!text) return {} as T;
+  return JSON.parse(text) as T;
 }
 
 /** Extrait un id de morceau ou de playlist depuis un lien/URI/id Spotify. */

@@ -104,6 +104,13 @@ export default function PlaylistView({
       if (res.ok && data.spotifyUrl) {
         alert("Playlist exportée avec succès sur Spotify ! Nous allons l'ouvrir.");
         window.open(data.spotifyUrl, "_blank");
+      } else if (data.needReauth) {
+        const reconnect = confirm(
+          "Permissions insuffisantes.\nTu dois te reconnecter à Spotify pour autoriser la création de playlists.\n\nVeux-tu te reconnecter maintenant ?"
+        );
+        if (reconnect) {
+          window.location.href = "/api/auth/login";
+        }
       } else {
         alert(data.error ?? "Impossible d'exporter la playlist");
       }

@@ -82,6 +82,16 @@ export async function POST(
     return NextResponse.json({ ok: true, spotifyUrl });
   } catch (e: any) {
     console.error("Export to Spotify failed:", e);
+    if (e?.status === 403) {
+      return NextResponse.json(
+        {
+          error:
+            "Permissions insuffisantes. Déconnecte-toi puis reconnecte-toi pour autoriser Pulse à créer des playlists sur ton compte Spotify.",
+          needReauth: true,
+        },
+        { status: 403 }
+      );
+    }
     return NextResponse.json(
       { error: "Une erreur est survenue lors de l'export vers Spotify" },
       { status: 500 }
