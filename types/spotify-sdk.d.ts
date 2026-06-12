@@ -24,6 +24,11 @@ interface WebPlaybackState {
 interface SpotifyPlayer {
   connect(): Promise<boolean>;
   disconnect(): void;
+  /**
+   * Déverrouille l'élément <audio> interne du SDK. Doit être appelé pendant un
+   * geste utilisateur (clic) — obligatoire sur iOS Safari, sans effet ailleurs.
+   */
+  activateElement(): Promise<void>;
   addListener(event: "ready" | "not_ready", cb: (data: { device_id: string }) => void): boolean;
   addListener(event: "player_state_changed", cb: (state: WebPlaybackState | null) => void): boolean;
   addListener(

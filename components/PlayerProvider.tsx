@@ -285,6 +285,14 @@ export function PlayerProvider({
       options?: { shuffle?: boolean }
     ) => {
       setError(null);
+      // iOS Safari : débloque l'élément audio interne du SDK. DOIT être appelé
+      // de façon synchrone dans le geste utilisateur (avant tout await), sinon
+      // iOS coupe la lecture au démarrage et l'état du lecteur ne remonte pas.
+      try {
+        playerRef.current?.activateElement();
+      } catch {
+        // sans effet hors iOS
+      }
       try {
         const { accessToken, product } = await getToken();
         if (product && product !== "premium") {
