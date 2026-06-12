@@ -1,26 +1,198 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0b;
+  --foreground: #f3f1ea;
+  --muted: #837e72;
+  --gold: #e3b341;
+  --gold-soft: #c9a24a;
+  --gold-dim: rgba(227, 179, 65, 0.14);
+  --line: rgba(255, 255, 255, 0.07);
+  --panel: rgba(255, 255, 255, 0.022);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-muted: var(--muted);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Halo doré unique, très discret, ancré en haut — loin de l'effet "blobs IA". */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(620px 380px at 50% -8%, rgba(227, 179, 65, 0.1), transparent 70%),
+    radial-gradient(900px 500px at 50% -20%, rgba(227, 179, 65, 0.04), transparent 75%);
+}
+
+/* Fine ligne dorée décorative */
+.hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-soft), transparent);
+  opacity: 0.5;
+}
+
+/* ── Surfaces ─────────────────────────────────────── */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0.875rem;
+}
+
+.card-hover {
+  transition: border-color 0.25s ease, background 0.25s ease, transform 0.25s ease;
+}
+.card-hover:hover {
+  border-color: rgba(227, 179, 65, 0.35);
+  background: rgba(227, 179, 65, 0.03);
+  transform: translateY(-2px);
+}
+
+/* ── Typographie ──────────────────────────────────── */
+.gold-text {
+  color: var(--gold);
+}
+
+.eyebrow {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold-soft);
+}
+
+/* ── Boutons ──────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border-radius: 9999px;
+  padding: 0.7rem 1.5rem;
+  font-weight: 600;
+  color: #161200;
+  background: linear-gradient(180deg, #f0c25a, #d29f33);
+  border: 1px solid rgba(227, 179, 65, 0.6);
+  transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-primary:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px -10px rgba(227, 179, 65, 0.5);
+}
+.btn-primary:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 0.65rem 1.35rem;
+  font-weight: 500;
+  color: var(--foreground);
+  border: 1px solid var(--line);
+  background: transparent;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.btn-ghost:hover {
+  border-color: rgba(227, 179, 65, 0.45);
+  color: var(--gold);
+}
+.btn-ghost:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ── Champs ───────────────────────────────────────── */
+.input {
+  width: 100%;
+  border-radius: 0.7rem;
+  padding-block: 0.7rem;
+  padding-inline: 0.95rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input::placeholder {
+  color: var(--muted);
+}
+.input:focus {
+  border-color: rgba(227, 179, 65, 0.55);
+  box-shadow: 0 0 0 3px rgba(227, 179, 65, 0.12);
+}
+/* Variante avec icône/préfixe à gauche (corrige le chevauchement du « @ ») */
+.input-prefixed {
+  padding-inline-start: 2.4rem;
+}
+
+/* Égaliseur animé (morceau en cours) */
+.eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 13px;
+}
+.eq span {
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--gold);
+  animation: eq-bounce 1s ease-in-out infinite;
+}
+.eq span:nth-child(2) {
+  animation-delay: 0.25s;
+}
+.eq span:nth-child(3) {
+  animation-delay: 0.5s;
+}
+@keyframes eq-bounce {
+  0%,
+  100% {
+    height: 3px;
+  }
+  50% {
+    height: 13px;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(227, 179, 65, 0.2);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(227, 179, 65, 0.35);
+}
+
+input[type="range"] {
+  accent-color: var(--gold);
 }

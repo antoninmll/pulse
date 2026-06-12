@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎧 Pulse
 
-## Getting Started
+Partage tes playlists, suis leurs écoutes.
 
-First, run the development server:
+Pulse est une application web connectée à Spotify : tu te connectes avec ton compte Spotify
+(aucun compte à créer), tu crées ou importes des playlists, tu les partages d'un simple lien,
+et tu suis leurs statistiques d'écoute en temps réel (écoutes par morceau, auditeurs uniques,
+tendance sur 14 jours).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Fonctionnalités
+
+- **Connexion Spotify** — OAuth officiel, le compte Pulse est créé automatiquement
+  (tu choisis juste un nom d'utilisateur). Profil modifiable : photo, nom affiché, bio.
+- **Playlists** — création de zéro avec **recherche directe dans le catalogue Spotify**,
+  ajout par **lien Spotify** si la recherche ne suffit pas, et **import complet d'une
+  playlist Spotify existante** en collant son lien.
+- **Partage** — chaque playlist a un lien unique (`/p/xxxxxxxxxx`). Publique (visible dans
+  Découvrir) ou privée (accessible à toi seul).
+- **Lecture intégrale** — via le Spotify Web Playback SDK, avec lecteur intégré
+  (lecture/pause, suivant/précédent, progression, volume). ⚠️ Nécessite **Spotify Premium**
+  (limitation imposée par Spotify).
+- **Stats créateur** — pour chaque playlist : écoutes totales, auditeurs uniques, morceau le
+  plus écouté, écoutes par morceau et courbe des 14 derniers jours.
+
+## Installation
+
+### 1. Prérequis
+
+- [Node.js](https://nodejs.org) 20 ou plus (déjà installé si tu as suivi la mise en place)
+- Un compte Spotify (Premium pour la lecture intégrale)
+
+### 2. Créer ton app Spotify (2 minutes, gratuit)
+
+1. Va sur <https://developer.spotify.com/dashboard> et connecte-toi avec ton compte Spotify.
+2. Clique **Create app** et remplis :
+   - **App name** : `Pulse` (ou ce que tu veux)
+   - **Redirect URI** : `http://127.0.0.1:3000/api/auth/callback`
+     ⚠️ exactement cette valeur — Spotify n'accepte plus `localhost`, il faut `127.0.0.1`.
+   - **APIs used** : coche **Web API** et **Web Playback SDK**.
+3. Valide, puis ouvre **Settings** : copie le **Client ID** et le **Client secret**.
+
+### 3. Configurer l'application
+
+Ouvre le fichier `.env.local` à la racine du projet et colle tes identifiants :
+
+```env
+SPOTIFY_CLIENT_ID=ton_client_id
+SPOTIFY_CLIENT_SECRET=ton_client_secret
+APP_URL=http://127.0.0.1:3000
+SESSION_SECRET=(déjà généré, ne pas toucher)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 4. Lancer
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Ouvre **http://127.0.0.1:3000** (bien `127.0.0.1`, pas `localhost`, pour que la connexion
+Spotify fonctionne).
 
-## Learn More
+## ⚠️ Mode développement Spotify
 
-To learn more about Next.js, take a look at the following resources:
+Une app Spotify fraîchement créée est en **Development Mode** : seuls les utilisateurs que tu
+ajoutes à la main peuvent se connecter (25 maximum).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Pour permettre à un ami de se connecter : dashboard Spotify → ton app → **Settings** →
+**User Management** → ajoute son nom + l'email de son compte Spotify.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Pour ouvrir l'app à tout le monde, il faut demander le passage en *Extended Quota Mode*
+depuis le dashboard (validation par Spotify).
 
-## Deploy on Vercel
+## Structure technique
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Élément | Choix |
+| --- | --- |
+| Framework | Next.js 16 (App Router, Turbopack) + React 19 + TypeScript |
+| Style | Tailwind CSS v4 + design system maison (verre dépoli, dégradés violet/cyan) |
+| Base de données | SQLite (better-sqlite3) — fichier `data/pulse.db` créé automatiquement |
+| Auth | OAuth Spotify (authorization code) + session signée HMAC en cookie httpOnly |
+| Lecture | Spotify Web Playback SDK (l'app devient un appareil Spotify « Pulse ») |
+| Stats | Chaque lecture déclenche un événement enregistré côté serveur (anti-doublon 30 s) |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Scripts utiles
+
+- `npm run dev` — serveur de développement
+- `npm run build && npm start` — production
+- `node scripts/seed-test.mjs` — injecte des données de démo (utilisateur + playlist +
+  écoutes) et affiche un cookie de session de test, pratique pour voir l'interface sans
+  configurer Spotify. Supprime le dossier `data/` pour repartir de zéro.
